@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-
 st.title("📊 Bond Interest Monthly Tracker")
 
 # Upload multiple Excel files
@@ -25,11 +24,15 @@ if uploaded_files:
             df = df.dropna(subset=['IP Date'])
             df['Month'] = df['IP Date'].dt.to_period('M').astype(str)
 
-            # Special rule for "navi"
-            if 'navi' in file_name:
+            # Special rule for files containing "navi" or "kosamattam"
+            if 'navi' in file_name or 'kosamattam' in file_name:
                 df['Gross INT'] *= 10
                 df['NET INT'] *= 10
                 st.info(f"Applied 10x multiplier for {file.name}")
+            elif 'electronica' in file_name:
+                df['Gross INT'] *= 6
+                df['NET INT'] *= 6
+                st.info(f"Applied 6x multiplier for {file.name}")
 
             df['File Name'] = file.name  # Optional: to track which file
             all_data.append(df)
@@ -62,6 +65,8 @@ if uploaded_files:
         st.subheader(f"📅 Transactions for {selected_month} {selected_year}")
         st.dataframe(filtered[['IP Date', 'Gross INT', 'TDS', 'NET INT', 'File Name']])
 
+        filtered[['Gross INT', 'TDS', 'NET INT']] = filtered[['Gross INT', 'TDS', 'NET INT']].apply(pd.to_numeric, errors='coerce')
+
         # Monthly total
         total = filtered[['Gross INT', 'TDS', 'NET INT']].sum().to_frame(name='Total').T
         st.subheader("🧾 Totals for Selected Month")
@@ -85,10 +90,10 @@ if uploaded_files:
             y=alt.Y(
                 'Amount:Q',
                 title='Amount',
-                scale=alt.Scale(domain=[0, 50000]),  # 👈 Set your own Y-axis range
+                scale=alt.Scale(domain=[0, 50000]),
                 axis=alt.Axis(values=list(range(0, 50001, 5000)))
             ),
-        color='Category:N',
+            color='Category:N',
             tooltip=['Month', 'Category', 'Amount']
         ).properties(
             width=700,
